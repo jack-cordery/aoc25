@@ -82,16 +82,22 @@ impl Lock {
     //
     pub fn apply(&mut self, m: &Move) {
         let d: u8 = (m.distance % 100) as u8;
+        self.zeroed += (m.distance / 100) as u64;
 
         let d = match m.direction {
-            Direction::Right => d,
-            Direction::Left => 100 - d,
+            Direction::Right => {
+                self.zeroed += ((self.pos + d) / 100) as u64;
+                d
+            }
+            Direction::Left => {
+                if self.pos > 0 && self.pos as i16 - d as i16 <= 0 {
+                    self.zeroed += 1;
+                }
+                100 - d
+            }
         };
 
         let new_pos = (self.pos + d) % 100;
-        if new_pos == 0 {
-            self.zeroed += 1;
-        }
         self.pos = new_pos
     }
 
@@ -145,7 +151,7 @@ mod test {
 
         lock.apply(&Move::new(Direction::Left, 150));
         assert_eq!(lock.pos, 50);
-        assert_eq!(lock.zeroed, 1);
+        assert_eq!(lock.zeroed, 3);
     }
 
     #[test]
@@ -162,6 +168,6 @@ mod test {
         lock.apply_multi(moves);
 
         assert_eq!(lock.pos, 50);
-        assert_eq!(lock.zeroed, 1);
+        assert_eq!(lock.zeroed, 3);
     }
 }
