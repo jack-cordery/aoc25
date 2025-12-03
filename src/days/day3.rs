@@ -20,7 +20,7 @@ pub struct Battery {
 
 pub struct Bank {
     batteries: Vec<Battery>,
-    joltage: u8,
+    joltage: u64,
 }
 
 impl Battery {
@@ -42,25 +42,28 @@ impl Bank {
         Self { batteries, joltage }
     }
 
-    fn calculate_joltage(batteries: &[Battery]) -> u8 {
-        let mut first: u8 = 0;
-        let mut first_pos: usize = 0;
-        let mut second: u8 = 0;
-
-        for (i, j) in batteries.iter().enumerate().take(batteries.len() - 1) {
-            if j.joltage > first {
-                first = j.joltage;
-                first_pos = i;
+    fn calculate_joltage(batteries: &[Battery]) -> u64 {
+        let mut digits: Vec<u8> = vec![];
+        let mut prev_pos: i16 = -1;
+        for a in (1..=12).rev() {
+            let mut prev: u8 = 0;
+            for (i, j) in batteries
+                .iter()
+                .enumerate()
+                .take(batteries.len() - a + 1)
+                .skip((prev_pos + 1) as usize)
+            {
+                if j.joltage > prev {
+                    prev = j.joltage;
+                    prev_pos = i as i16;
+                }
             }
+
+            digits.push(prev);
         }
 
-        for j in batteries.iter().skip(first_pos + 1) {
-            if j.joltage > second {
-                second = j.joltage;
-            }
-        }
-
-        first * 10 + second
+        let s: String = digits.iter().map(|d| d.to_string()).collect();
+        s.parse().unwrap()
     }
 }
 
@@ -69,10 +72,7 @@ pub fn day_three(path: &str) -> Result<()> {
 
     let content = read(path)?;
 
-    let answer: u64 = content
-        .lines()
-        .map(|l| Bank::new(l.unwrap()).joltage as u64)
-        .sum();
+    let answer: u64 = content.lines().map(|l| Bank::new(l.unwrap()).joltage).sum();
 
     println!(
         "the answer is {} and it took {}",
@@ -94,24 +94,29 @@ mod test {
 
     #[test]
     fn test_bank_new() {
-        let batteries = vec![Battery::new(1), Battery::new(2), Battery::new(3)];
-        let bank = Bank::new("123".to_string());
-        assert_eq!(bank.batteries, batteries);
-        assert_eq!(bank.joltage, 23);
-
         let bank = Bank::new("987654321111111".to_string());
-        assert_eq!(bank.joltage, 98);
+        assert_eq!(bank.joltage, 987654321111);
 
         let bank = Bank::new("818181911112111".to_string());
-        assert_eq!(bank.joltage, 92);
+        assert_eq!(bank.joltage, 888911112111);
     }
 
     #[test]
     fn test_bank_calculate_joltage() {
-        let batteries = vec![Battery::new(1), Battery::new(2), Battery::new(3)];
-        assert_eq!(Bank::calculate_joltage(&batteries), 23);
-
-        let batteries = vec![Battery::new(9), Battery::new(3), Battery::new(2)];
-        assert_eq!(Bank::calculate_joltage(&batteries), 93);
+        let batteries = vec![
+            Battery::new(1),
+            Battery::new(2),
+            Battery::new(3),
+            Battery::new(1),
+            Battery::new(2),
+            Battery::new(3),
+            Battery::new(1),
+            Battery::new(2),
+            Battery::new(3),
+            Battery::new(1),
+            Battery::new(2),
+            Battery::new(3),
+        ];
+        assert_eq!(Bank::calculate_joltage(&batteries), 123123123123);
     }
 }
