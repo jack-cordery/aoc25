@@ -1,4 +1,6 @@
 use std::{
+    cmp::{max, min},
+    collections::{VecDeque, vec_deque},
     fs::{read, read_to_string},
     io::Result,
     time::Instant,
@@ -31,9 +33,44 @@ impl Ranges {
         }
         score
     }
+
+    pub fn combine(&mut self) {
+        // we want to have the simplest repr
+        // want to pairwise combine them from the left
+        //
+
+        let mut buffer = vec![self.ranges.first().unwrap().to_owned()];
+
+        self.ranges.iter().skip(1).for_each(|r| {
+            // from the left of the buffer i want to combine with r and take that result and
+            // combine the nect elemeent of the buffer
+            //
+            // so i need to go to
+            let mut r_clone = r.clone();
+            let mut local = vec![];
+            for b in buffer.iter() {
+                // everything in buffer is always exclusive
+                let combined = r_clone.combine(b);
+                if combined.len() == 1 {
+                    // r combined with b to make a new extended range
+                    // so now for the next b we continue with r+b
+                    r_clone = combined.first().unwrap().to_owned();
+                } else {
+                    // r and b are exlusive so now for the next b we continue with r
+                    local.push(b.to_owned())
+                }
+            }
+            // this is now all of the exclusive bs and the combined r+bs
+            local.push(r_clone);
+            local.sort_by(|a, b| a.start.cmp(&b.start));
+            buffer = local;
+        });
+
+        self.ranges = buffer;
+    }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Range {
     start: u64,
     end: u64,
@@ -45,6 +82,21 @@ impl Range {
     }
     pub fn is_item_fresh(&self, item: &Item) -> bool {
         item.id <= self.end && item.id >= self.start
+    }
+
+    pub fn combine(&self, another: &Range) -> Vec<Self> {
+        // this will either extend or return two
+        if another.start <= self.end && another.end >= self.start {
+            // they can be combined
+            let new = vec![Self::new(
+                min(another.start, self.start),
+                max(another.end, self.end),
+            )];
+            return new;
+        };
+        let mut new = vec![self.clone(), another.clone()];
+        new.sort_by(|a, b| a.start.cmp(&b.start));
+        new
     }
 }
 
@@ -66,7 +118,6 @@ pub fn day_five(path: &str) -> Result<()> {
     let mut content_split = content.split("\n\n");
 
     let ranges = content_split.next().unwrap();
-    let items = content_split.next().unwrap();
 
     let ranges: Vec<Range> = ranges
         .split("\n")
@@ -78,16 +129,10 @@ pub fn day_five(path: &str) -> Result<()> {
         })
         .collect();
 
-    let items: Vec<Item> = items
-        .trim_end_matches("\n")
-        .split("\n")
-        .map(|i| {
-            let id = i.parse().unwrap();
-            Item::new(id)
-        })
-        .collect();
+    let mut r = Ranges::new(ranges);
+    r.combine();
 
-    let score = Ranges::new(ranges).score(items);
+    let score: u64 = r.ranges.iter().map(|r| (r.end - r.start) + 1).sum();
 
     println!(
         "todays score is {}, and took {}",
@@ -118,6 +163,21 @@ mod test {
         assert!(Range::new(1, 18).is_item_fresh(&Item::new(18)));
         assert!(Range::new(1, 18).is_item_fresh(&Item::new(1)));
         assert!(!Range::new(1, 18).is_item_fresh(&Item::new(0)));
+    }
+
+    #[test]
+    fn test_range_combine() {
+        let r1 = Range::new(1, 2);
+        let r2 = Range::new(2, 6);
+        assert_eq!(r1.combine(&r2), vec![Range::new(1, 6)]);
+
+        let r1 = Range::new(1, 2);
+        let r2 = Range::new(2, 6);
+        assert_eq!(r2.combine(&r1), vec![Range::new(1, 6)]);
+
+        let r1 = Range::new(1, 2);
+        let r2 = Range::new(4, 6);
+        assert_eq!(r2.combine(&r1), vec![Range::new(1, 2), Range::new(4, 6)]);
     }
 
     #[test]
@@ -163,5 +223,20 @@ mod test {
         ];
 
         assert_eq!(Ranges::new(ranges).score(items), 3);
+    }
+    #[test]
+    fn test_combine() {
+        let ranges = vec![
+            Range::new(3, 5),
+            Range::new(10, 14),
+            Range::new(16, 20),
+            Range::new(12, 18),
+        ];
+
+        let expected = Ranges::new(vec![Range::new(3, 5), Range::new(10, 20)]);
+        let mut actual = Ranges::new(ranges);
+        actual.combine();
+
+        assert_eq!(actual, expected);
     }
 }
