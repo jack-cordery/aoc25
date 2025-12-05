@@ -1,6 +1,6 @@
 use std::{env, io};
 
-use aoc25::days::{day1::day_one, day2::day_two, day3::day_three, day4::day_four};
+use aoc25::days::{day1::day_one, day2::day_two, day3::day_three, day4::day_four, day5::day_five};
 
 fn main() -> io::Result<()> {
     let mut args = env::args();
@@ -18,6 +18,7 @@ fn main() -> io::Result<()> {
         "day_two" => day_two(path.as_str())?,
         "day_three" => day_three(path.as_str())?,
         "day_four" => day_four(path.as_str())?,
+        "day_five" => day_five(path.as_str())?,
         _ => {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
