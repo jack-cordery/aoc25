@@ -60,8 +60,112 @@ impl Column {
         s
     }
 }
-
 pub fn day_six(path: &str) -> Result<()> {
+    let now = Instant::now();
+
+    let content = read(path)?;
+    let lines: Vec<String> = content.lines().map(|l| l.unwrap()).collect();
+
+    let char_lines: Vec<Vec<char>> = lines
+        .iter()
+        .rev()
+        .map(|s| {
+            let cs: Vec<&str> = s.split_whitespace().collect();
+            let cs: Vec<char> = cs
+                .iter()
+                .map(|s| {
+                    let chars: Vec<char> = s.chars().collect();
+                    chars.first().unwrap().to_owned()
+                })
+                .collect();
+            cs
+        })
+        .collect();
+
+    let operations: Vec<Operation> = char_lines
+        .first()
+        .unwrap()
+        .to_owned()
+        .iter()
+        .map(|a| Operation::from_char(a).unwrap())
+        .collect();
+
+    let columns: Vec<Vec<char>> = lines
+        .iter()
+        .rev()
+        .skip(1)
+        .map(|c| c.chars().rev().collect())
+        .rev()
+        .collect();
+
+    let rows = columns.len();
+    let cols = columns[0].len();
+
+    let transposed: Vec<Vec<char>> = (0..cols)
+        .map(|col| (0..rows).map(|row| columns[row][col]).collect())
+        .collect();
+
+    let transposed_filtered: Vec<Vec<char>> = transposed
+        .into_iter()
+        // .filter(|r| !r.iter().all(|i| i == &' ')) // get rid of this but then need a "_" on
+        // each line
+        .collect();
+
+    println!("{:?}", transposed_filtered.len());
+
+    let s: Vec<String> = transposed_filtered
+        .iter()
+        .map(|chunk| chunk.iter().collect())
+        .collect();
+
+    let ch = lines.len() - 1;
+
+    println!("{:?}", ch);
+
+    let splits: Vec<Vec<String>> = s
+        .join("\n") // combine lines into one string with line breaks
+        .split(" ".repeat(ch).as_str()) // split at 4 spaces
+        .map(|chunk| {
+            chunk
+                .lines() // split each chunk back into lines
+                .map(|line| line.to_string())
+                .filter(|line| !line.is_empty())
+                .collect::<Vec<String>>()
+        })
+        .collect();
+    println!("{:?}", splits);
+    //
+    let actual_nums: Vec<Vec<u64>> = splits
+        .iter()
+        .map(|s| {
+            s.iter()
+                .map(|n| n.trim_start().trim_end())
+                .map(|n| n.parse().unwrap())
+                .collect()
+        })
+        .collect();
+
+    let score: u64 = actual_nums
+        .iter()
+        .rev()
+        .zip(operations)
+        .map(|(t, op)| {
+            let s = Column::new(t.to_owned(), op).score();
+            println!("{:?}= {:?}", t, s);
+            s
+        })
+        .sum();
+
+    println!(
+        "the score is {} and it took {}us",
+        score,
+        now.elapsed().as_micros()
+    );
+
+    Ok(())
+}
+
+pub fn day_six_part_1(path: &str) -> Result<()> {
     let now = Instant::now();
 
     let content = read(path)?;
