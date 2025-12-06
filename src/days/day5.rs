@@ -111,8 +111,6 @@ impl Item {
 }
 
 pub fn day_five(path: &str) -> Result<()> {
-    let now = Instant::now();
-
     let content = read_to_string(path)?;
     let mut content_split = content.split("\n\n");
 
@@ -128,6 +126,7 @@ pub fn day_five(path: &str) -> Result<()> {
         })
         .collect();
 
+    let now = Instant::now();
     let mut r = Ranges::new(ranges);
     r.combine();
 
