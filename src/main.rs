@@ -2,7 +2,7 @@ use std::{env, io};
 
 use aoc25::days::{
     day1::day_one, day2::day_two, day3::day_three, day4::day_four, day5::day_five, day6::day_six,
-    day7::day_seven,
+    day7::day_seven, day8::day_eight,
 };
 
 fn main() -> io::Result<()> {
@@ -24,6 +24,7 @@ fn main() -> io::Result<()> {
         "day_five" => day_five(path.as_str())?,
         "day_six" => day_six(path.as_str())?,
         "day_seven" => day_seven(path.as_str())?,
+        "day_eight" => day_eight(path.as_str())?,
         _ => {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
